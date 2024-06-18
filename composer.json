@@ -1,0 +1,15 @@
+{
+    "name": "lkoc/decision-machine",
+    "authors": [
+        {
+            "name": "Łukasz Koc",
+            "email": "lukasz.koc@rawlplug.com"
+        }
+    ],
+    "require": {},
+    "autoload": {
+        "psr-4": {
+            "DecisionMachine\\": "."
+        }
+    }
+}
