@@ -17,23 +17,14 @@ class ApiNode extends Node
         parent::__construct($Id);
     }
 
-    public function input(NodeSignal $signal)
+    public function process(Signal $signal): Signal
     {
         if($this->callBackNode) {
             $this->config = $this->callBackNode->prepareConfig($this->config, $signal);
         }
-
         $response = $this->sendRequest($this->config);
-        $newSignal = new NodeSignal(json_decode($response, true), new SignalType(''));
 
-        if($this->callBackNode) {
-            parent::input($this->callBackNode->end($newSignal));
-
-            return;
-        }
-
-        parent::input($newSignal);
-
+        return $signal->prepareSignal(json_decode($response, true), new SignalType());
     }
 
     protected function sendRequest(array $config)

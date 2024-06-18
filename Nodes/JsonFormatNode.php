@@ -16,15 +16,12 @@ class JsonFormatNode extends Node
         parent::__construct($Id);
     }
 
-    public function input(NodeSignal $signal)
+    public function process(Signal $signal): Signal
     {
         if($this->callBackNode) {
-            parent::input($this->callBackNode->input($signal));
-
-            return;
+            return $this->callBackNode->input($signal);
         }
 
-        parent::input($signal);
-
+        return $signal;
     }
 }
