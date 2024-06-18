@@ -1,6 +1,6 @@
 <?php
 
-namespace DecisionMachine;
+namespace DecisionMachine\Nodes;
 
 class SwitchNode extends Node
 {
