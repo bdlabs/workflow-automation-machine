@@ -1,6 +1,9 @@
 <?php
 
-namespace DecisionMachine;
+namespace DecisionMachine\Nodes;
+
+use DecisionMachine\FrameWork\Signal;
+use DecisionMachine\FrameWork\SignalType;
 
 class ApiNode extends Node
 {
