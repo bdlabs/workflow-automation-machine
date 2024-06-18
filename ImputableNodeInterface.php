@@ -2,7 +2,9 @@
 
 namespace DecisionMachine;
 
+use DecisionMachine\FrameWork\Signal;
+
 interface ImputableNodeInterface
 {
-    public function input(NodeSignal $signal): NodeSignal;
+    public function input(Signal $signal): Signal;
 }
