@@ -71,7 +71,10 @@ class Machine
         );
     }
 
-    protected function emitStart()
+    /**
+     * @return array
+     */
+    protected function prepareRelation(): array
     {
         $relations = [];
         $nodeNamePositionList = [];
@@ -114,6 +117,12 @@ class Machine
             }
         );
 
+        return $relations;
+    }
+
+    protected function emitStart(): void
+    {
+        $relations= $this->prepareRelation();
         while ($record = array_shift($relations)) {
             $sendingNodeName = $record['from'];
             $nodeName = $record['to'];
