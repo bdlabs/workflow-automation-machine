@@ -121,21 +121,32 @@ class Machine
             $signal = $this->getInputs($sendingNodeName);
             $this->logs[] = [
                 'signal' => $sendingNodeName,
-                'input' => json_encode($signal->signal()->valueOf()),
+                'action' => 'init',
+                'actionData' => [
+                    'input' => json_encode($signal->signal()->valueOf()),
+                ]
             ];
             if ((!$exceptionSignalType instanceof \Closure && $signal->signal()->equal($exceptionSignalType)) ||
                 $exceptionSignalType instanceof \Closure && $exceptionSignalType($signal)) {
                 $this->logs[] = [
-                    'run' => $nodeName,
-                    'exceptionSignalType' => $exceptionSignalType::class,
-                    'exist' => (bool)$this->nodeList[$nodeName],
+                    'signal' => $sendingNodeName,
+                    'action' => 'run',
+                    'actionData' => [
+                        'run' => $nodeName,
+                        'exceptionSignalType' => $exceptionSignalType::class,
+                        'exist' => (bool)$this->nodeList[$nodeName],
+                    ],
                 ];
                 try {
                     $this->emit($nodeName, $this->nodeList[$nodeName]->process($signal));
                 } catch (\Exception $exception) {
                     $this->logs[] = [
-                        'error' => $nodeName,
-                        'input' => $exception->getMessage(),
+                        'signal' => $sendingNodeName,
+                        'action' => 'error',
+                        'actionData' => [
+                            'run' => $nodeName,
+                            'message' => $exception->getMessage(),
+                        ],
                     ];
                 }
             }
@@ -149,7 +160,10 @@ class Machine
         $this->signal = $signal;
         $this->logs[] = [
             'signal' => $sendingNodeName,
-            'action' => 'register output signal',
+            'action' => 'register_output_signal',
+            'actionData' => [
+                'message' => 'register output signal',
+            ]
         ];
     }
 
