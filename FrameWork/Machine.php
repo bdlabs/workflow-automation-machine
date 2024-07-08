@@ -37,9 +37,6 @@ class Machine
         array $dependencies = []
     ): void {
         $this->nodeList[$nodeName] = $node;
-        $node->setEmitter(function ($signalId, $data) {
-            $this->emit($signalId, $data);
-        });
         $this->dependencies[$nodeName] = $dependencies;
     }
 
@@ -74,11 +71,13 @@ class Machine
     protected function emitStart()
     {
         while ($sendingNodeName = array_shift($this->emits)) {
+            echo 'For ' . $sendingNodeName . PHP_EOL;
             $signals = $this->joinedNodesMap[$sendingNodeName] ?? [];
             $signal = $this->getInputs($sendingNodeName);
             $this->logs[] = [
                 'signal' => $sendingNodeName,
                 'input' => json_encode($signal->signal()->valueOf()),
+                //'type' => $signal->signal()->type(),
             ];
             foreach ($signals ?? [] as $nodeName => $exceptionSignalType) {
                 //if (!$this->checkDependenciesExist($sendingNodeName, $nodeName)) {
@@ -94,7 +93,14 @@ class Machine
                         'exist' => (bool)$this->nodeList[$nodeName],
                         //'out' => $out->signal()->valueOf(),
                     ];
-                    $this->emit($nodeName, $this->nodeList[$nodeName]->process($signal));
+                    try {
+                        $this->emit($nodeName, $this->nodeList[$nodeName]->process($signal));
+                    } catch (\Exception $exception) {
+                        $this->logs[] = [
+                            'error' => $nodeName,
+                            'input' => $exception->getMessage(),
+                        ];
+                    }
                 }
             }
         }
