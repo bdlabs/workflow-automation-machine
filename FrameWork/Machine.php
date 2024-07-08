@@ -62,7 +62,7 @@ class Machine
         return $this->logs;
     }
 
-    public function prepareSignal(array $data, $signalType)
+    public function prepareSignal(array $data, $signalType): Signal
     {
         return new Signal(
             new NodeSignal($data, $signalType),
