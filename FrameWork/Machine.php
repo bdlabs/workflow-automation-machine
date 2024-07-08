@@ -154,8 +154,6 @@ class Machine
     {
         $signals = $this->joinedNodesMap[$sendingNodeName] ?? [];
         $dependencies = $this->dependencies[$nodeName] ?? [];
-        //echo $sendingNodeName . ' ' . $nodeName . PHP_EOL;
-        //echo count(array_diff($dependencies, $signals)) . PHP_EOL;
 
         return count(array_diff($dependencies, $signals)) === 0;
     }
@@ -171,21 +169,16 @@ class Machine
         $used = [];
         $current = $start = new GraphNode('start');
         foreach ($this->joinedNodesMap as $signalNodeName => $nodes) {
-            //echo 'root = ' . $current->name() . PHP_EOL;
-            //echo 'child = ' . $signalNodeName . PHP_EOL;
             if ($signalNodeName === 'start') {
                 continue;
             }
             $finding = $start->find($signalNodeName);
             if (!$finding) {
-                //echo 'create = ' . $signalNodeName . ' for ' . $current->name() . PHP_EOL;
                 $finding = new GraphNode($signalNodeName);
                 $current->join($finding);
             }
             $current = $finding ?: $current;
-            //echo 'current root = ' . $current->name() . PHP_EOL;
             foreach ($nodes as $nodeName => $signal) {
-                //echo "\t" . $nodeName . PHP_EOL;
                 if (isset($used[$nodeName])) {
                     throw new \Exception($nodeName . ' has been used.');
                 }
