@@ -176,14 +176,6 @@ class Machine
         ];
     }
 
-    protected function checkDependenciesExist(string $sendingNodeName, string $nodeName): bool
-    {
-        $signals = $this->joinedNodesMap[$sendingNodeName] ?? [];
-        $dependencies = $this->dependencies[$nodeName] ?? [];
-
-        return count(array_diff($dependencies, $signals)) === 0;
-    }
-
     /**
      * @throws \Exception
      */
