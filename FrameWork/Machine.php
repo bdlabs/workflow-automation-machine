@@ -40,6 +40,9 @@ class Machine
         $this->dependencies[$nodeName] = $dependencies;
     }
 
+    /**
+     * @throws \Exception
+     */
     public function run(Signal $inputSignal): Signal
     {
         $this->graphRender();
@@ -139,7 +142,7 @@ class Machine
         }
     }
 
-    protected function emit(string $sendingNodeName, Signal $signal)
+    protected function emit(string $sendingNodeName, Signal $signal): void
     {
         $this->emits[] = $sendingNodeName;
         $this->outputsSignals[$sendingNodeName] = $signal;
@@ -158,13 +161,19 @@ class Machine
         return count(array_diff($dependencies, $signals)) === 0;
     }
 
-    protected function graphRender()
+    /**
+     * @throws \Exception
+     */
+    protected function graphRender(): void
     {
         $graph = $this->graphRenderStart();
         $this->graphValidate($graph);
     }
 
-    protected function graphRenderStart()
+    /**
+     * @throws \Exception
+     */
+    protected function graphRenderStart(): GraphNode
     {
         $used = [];
         $current = $start = new GraphNode('start');
@@ -192,6 +201,9 @@ class Machine
         return $start;
     }
 
+    /**
+     * @throws \Exception
+     */
     protected function graphValidate(GraphNode $aa): void
     {
         foreach ($this->dependencies as $nodeName => $dependencies) {
