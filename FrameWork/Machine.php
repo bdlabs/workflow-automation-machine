@@ -70,37 +70,70 @@ class Machine
 
     protected function emitStart()
     {
+        $relations = [];
+        $nodeNamePositionList = [];
+        $nodeNamePositionList['start'] = 0;
+        $position = 1;
         while ($sendingNodeName = array_shift($this->emits)) {
-            echo 'For ' . $sendingNodeName . PHP_EOL;
             $signals = $this->joinedNodesMap[$sendingNodeName] ?? [];
+            foreach ($signals ?? [] as $nodeName => $exceptionSignalType) {
+                $relations[] = [
+                    'from' => $sendingNodeName,
+                    'to' => $nodeName,
+                    'exception' => $exceptionSignalType,
+                    'dependencies' => [...$this->dependencies[$nodeName], $sendingNodeName],
+                    'position' => $position,
+                ];
+                $nodeNamePositionList[$nodeName] = $position++;
+                $this->emits[] = $nodeName;
+            }
+        }
+        foreach ($relations as &$list) {
+            if (count($list['dependencies'])) {
+                foreach ($list['dependencies'] as &$dependencies) {
+                    $dependencies = $nodeNamePositionList[$dependencies] + 1;
+                }
+                $list['dependencies'] = max($list['dependencies']);
+                $list['position'] = $list['dependencies'];
+                $nodeNamePositionList[$list['to']] = $list['dependencies'];
+            } else {
+                $list['dependencies'] = 0;
+            }
+        }
+        usort(
+            $relations,
+            function ($recordA, $recordB) {
+                if ($recordA['dependencies']) {
+                    return $recordA['dependencies'] <=> $recordB['position'];
+                }
+
+                return $recordA['position'] <=> $recordB['position'];
+            }
+        );
+
+        while ($record = array_shift($relations)) {
+            $sendingNodeName = $record['from'];
+            $nodeName = $record['to'];
+            $exceptionSignalType = $record['exception'];
             $signal = $this->getInputs($sendingNodeName);
             $this->logs[] = [
                 'signal' => $sendingNodeName,
                 'input' => json_encode($signal->signal()->valueOf()),
-                //'type' => $signal->signal()->type(),
             ];
-            foreach ($signals ?? [] as $nodeName => $exceptionSignalType) {
-                //if (!$this->checkDependenciesExist($sendingNodeName, $nodeName)) {
-                //    $addToEnd[] = $sendingNodeName;
-                //    continue;
-                //}
-                if ((!$exceptionSignalType instanceof \Closure && $signal->signal()->equal($exceptionSignalType)) ||
-                    $exceptionSignalType instanceof \Closure && $exceptionSignalType($signal)) {
+            if ((!$exceptionSignalType instanceof \Closure && $signal->signal()->equal($exceptionSignalType)) ||
+                $exceptionSignalType instanceof \Closure && $exceptionSignalType($signal)) {
+                $this->logs[] = [
+                    'run' => $nodeName,
+                    'exceptionSignalType' => $exceptionSignalType::class,
+                    'exist' => (bool)$this->nodeList[$nodeName],
+                ];
+                try {
+                    $this->emit($nodeName, $this->nodeList[$nodeName]->process($signal));
+                } catch (\Exception $exception) {
                     $this->logs[] = [
-                        'run' => $nodeName,
-                        'exceptionSignalType' => $exceptionSignalType::class,
-                        //'input' => $signal->signal()->valueOf(),
-                        'exist' => (bool)$this->nodeList[$nodeName],
-                        //'out' => $out->signal()->valueOf(),
+                        'error' => $nodeName,
+                        'input' => $exception->getMessage(),
                     ];
-                    try {
-                        $this->emit($nodeName, $this->nodeList[$nodeName]->process($signal));
-                    } catch (\Exception $exception) {
-                        $this->logs[] = [
-                            'error' => $nodeName,
-                            'input' => $exception->getMessage(),
-                        ];
-                    }
                 }
             }
         }
