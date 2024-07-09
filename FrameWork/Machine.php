@@ -9,22 +9,22 @@ namespace DecisionMachine\FrameWork;
  */
 class Machine
 {
-    /** @var Signal[] */
-    private array $outputsSignals = [];
-
     private Logger $logger;
 
     private MachineNodesContainer $nodeContainer;
 
-    private array $emits = [];
-
     private Signal|null $signal = null;
+
+    /** @var Signal[] */
+    private array $outputsSignals = [];
+
+    private array $emits = [];
 
     public function __construct()
     {
         $this->logger = new Logger();
         $this->nodeContainer = new MachineNodesContainer();
-        $this->registerNode('start', new \DecisionMachine\Nodes\Node());
+        $this->registerNode('start', $this->getNode());
     }
 
     public function getInputs(string $nodeName): Signal
@@ -187,5 +187,32 @@ class Machine
                 }
             }
         }
+    }
+
+    /**
+     * @return NodeInterface
+     */
+    protected function getNode(): NodeInterface
+    {
+        return new class implements NodeInterface {
+            public function __construct()
+            {
+            }
+
+            public function process(Signal $signal): Signal
+            {
+                return $signal;
+            }
+
+            public function expectedSignals(): array
+            {
+                return [];
+            }
+
+            public function setEmitter($emitter): void
+            {
+                $this->emitter = $emitter;
+            }
+        };
     }
 }
