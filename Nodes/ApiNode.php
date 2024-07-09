@@ -8,13 +8,11 @@ use DecisionMachine\FrameWork\SignalType;
 class ApiNode extends Node
 {
     /**
-     * @param string $Id
      * @param array $config
      * @param ApiNodeInterface|null $callBackNode
      */
-    public function __construct(string $Id, private array $config, private readonly ?ApiNodeInterface $callBackNode = null)
+    public function __construct(private array $config, private readonly ?ApiNodeInterface $callBackNode = null)
     {
-        parent::__construct($Id);
     }
 
     public function process(Signal $signal): Signal

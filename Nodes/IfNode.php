@@ -2,21 +2,20 @@
 
 namespace DecisionMachine\Nodes;
 
-use DecisionMachine\FalseSignalType;
-use DecisionMachine\NodeSignal;
-use DecisionMachine\TrueSignalType;
+use DecisionMachine\FrameWork\Signal;
+use DecisionMachine\ImputableNodeInterface;
 
 class IfNode extends Node
 {
-    public function input(NodeSignal $signal)
+    /**
+     * @param ImputableNodeInterface $callBackNode
+     */
+    public function __construct(private readonly ImputableNodeInterface $callBackNode)
     {
+    }
 
-        if ($signal->valueOf()['a'] ?? false) {
-            parent::input($signal->newSignal($signal->valueOf(), new TrueSignalType('')));
-
-            return;
-        }
-        parent::input($signal->newSignal($signal->valueOf(), new FalseSignalType('')));
-
+    public function process(Signal $signal): Signal
+    {
+        return $this->callBackNode->input($signal);
     }
 }

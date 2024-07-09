@@ -21,7 +21,7 @@ class Node implements NodeInterface
         return [];
     }
 
-    public function setEmitter($emitter)
+    public function setEmitter($emitter): void
     {
         $this->emitter = $emitter;
     }

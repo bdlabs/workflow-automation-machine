@@ -8,12 +8,10 @@ use DecisionMachine\ImputableNodeInterface;
 class LocalFileNode extends Node
 {
     /**
-     * @param string $Id
      * @param ImputableNodeInterface $callBackNode
      */
-    public function __construct(string $Id, private readonly ImputableNodeInterface $callBackNode)
+    public function __construct(private readonly ImputableNodeInterface $callBackNode)
     {
-        parent::__construct($Id);
     }
 
     public function process(Signal $signal): Signal

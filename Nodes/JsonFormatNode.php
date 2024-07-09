@@ -8,12 +8,10 @@ use DecisionMachine\ImputableNodeInterface;
 class JsonFormatNode extends Node
 {
     /**
-     * @param string $Id
      * @param ApiNodeInterface|null $callBackNode
      */
-    public function __construct(string $Id, private readonly ?ImputableNodeInterface $callBackNode = null)
+    public function __construct(private readonly ?ImputableNodeInterface $callBackNode = null)
     {
-        parent::__construct($Id);
     }
 
     public function process(Signal $signal): Signal
