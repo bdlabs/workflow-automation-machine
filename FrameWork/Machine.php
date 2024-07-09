@@ -12,19 +12,20 @@ class Machine
     /** @var Signal[] */
     private array $outputsSignals = [];
 
-    /** @var NodeInterface[] $nodeList */
-    private array $nodeList = [];
+    private Logger $logger;
 
-    /** @var SignalType[] */
-    private array $joinedNodesMap = [];
-
-    private array $logs = [];
+    private MachineNodesContainer $nodeContainer;
 
     private array $emits = [];
 
-    private array $dependencies = [];
-
     private Signal|null $signal = null;
+
+    public function __construct()
+    {
+        $this->logger = new Logger();
+        $this->nodeContainer = new MachineNodesContainer();
+        $this->registerNode('start', new \DecisionMachine\Nodes\Node());
+    }
 
     public function getInputs(string $nodeName): Signal
     {
@@ -36,8 +37,7 @@ class Machine
         NodeInterface $node,
         array $dependencies = []
     ): void {
-        $this->nodeList[$nodeName] = $node;
-        $this->dependencies[$nodeName] = $dependencies;
+        $this->nodeContainer->add($nodeName, $node, $dependencies);
     }
 
     /**
@@ -54,12 +54,14 @@ class Machine
 
     public function joinNodes(string $sendingNodeName, array $signals): void
     {
-        $this->joinedNodesMap[$sendingNodeName] = $signals;
+        foreach ($signals as $name => $signal) {
+            $this->nodeContainer->join($sendingNodeName, $name, $signal);
+        }
     }
 
     public function getLogs(): array
     {
-        return $this->logs;
+        return $this->logger->logs();
     }
 
     public function prepareSignal(array $data, $signalType): Signal
@@ -76,87 +78,41 @@ class Machine
      */
     protected function prepareRelation(): array
     {
-        $relations = [];
-        $nodeNamePositionList = [];
-        $nodeNamePositionList['start'] = 0;
-        $position = 1;
-        while ($sendingNodeName = array_shift($this->emits)) {
-            $signals = $this->joinedNodesMap[$sendingNodeName] ?? [];
-            foreach ($signals ?? [] as $nodeName => $exceptionSignalType) {
-                $relations[] = [
-                    'from' => $sendingNodeName,
-                    'to' => $nodeName,
-                    'exception' => $exceptionSignalType,
-                    'dependencies' => [...$this->dependencies[$nodeName], $sendingNodeName],
-                    'position' => $position,
-                ];
-                $nodeNamePositionList[$nodeName] = $position++;
-                $this->emits[] = $nodeName;
-            }
-        }
-        foreach ($relations as &$list) {
-            if (count($list['dependencies'])) {
-                foreach ($list['dependencies'] as &$dependencies) {
-                    $dependencies = $nodeNamePositionList[$dependencies] + 1;
-                }
-                $list['dependencies'] = max($list['dependencies']);
-                $list['position'] = $list['dependencies'];
-                $nodeNamePositionList[$list['to']] = $list['dependencies'];
-            } else {
-                $list['dependencies'] = 0;
-            }
-        }
-        usort(
-            $relations,
-            function ($recordA, $recordB) {
-                if ($recordA['dependencies']) {
-                    return $recordA['dependencies'] <=> $recordB['position'];
-                }
-
-                return $recordA['position'] <=> $recordB['position'];
-            }
-        );
-
-        return $relations;
+        return $this->nodeContainer->makeRelation($this->emits);
     }
 
+    /**
+     * @return void
+     */
     protected function emitStart(): void
     {
-        $relations= $this->prepareRelation();
+        $relations = $this->prepareRelation();
         while ($record = array_shift($relations)) {
             $sendingNodeName = $record['from'];
             $nodeName = $record['to'];
             $exceptionSignalType = $record['exception'];
             $signal = $this->getInputs($sendingNodeName);
-            $this->logs[] = [
-                'signal' => $sendingNodeName,
-                'action' => 'init',
-                'actionData' => [
-                    'input' => json_encode($signal->signal()->valueOf()),
-                ]
-            ];
+            $this->logger->init($sendingNodeName, json_encode($signal->signal()->valueOf()));
             if ((!$exceptionSignalType instanceof \Closure && $signal->signal()->equal($exceptionSignalType)) ||
                 $exceptionSignalType instanceof \Closure && $exceptionSignalType($signal)) {
-                $this->logs[] = [
-                    'signal' => $sendingNodeName,
-                    'action' => 'run',
-                    'actionData' => [
+                $this->logger->run(
+                    $sendingNodeName,
+                    [
                         'run' => $nodeName,
                         'exceptionSignalType' => $exceptionSignalType::class,
-                        'exist' => (bool)$this->nodeList[$nodeName],
-                    ],
-                ];
+                        'exist' => $this->nodeContainer->exist($nodeName),
+                    ]
+                );
                 try {
-                    $this->emit($nodeName, $this->nodeList[$nodeName]->process($signal));
+                    $this->emit($nodeName, $this->nodeContainer->process($nodeName, $signal));
                 } catch (\Exception $exception) {
-                    $this->logs[] = [
-                        'signal' => $sendingNodeName,
-                        'action' => 'error',
-                        'actionData' => [
+                    $this->logger->error(
+                        $sendingNodeName,
+                        [
                             'run' => $nodeName,
                             'message' => $exception->getMessage(),
-                        ],
-                    ];
+                        ]
+                    );
                 }
             }
         }
@@ -167,13 +123,7 @@ class Machine
         $this->emits[] = $sendingNodeName;
         $this->outputsSignals[$sendingNodeName] = $signal;
         $this->signal = $signal;
-        $this->logs[] = [
-            'signal' => $sendingNodeName,
-            'action' => 'register_output_signal',
-            'actionData' => [
-                'message' => 'register output signal',
-            ]
-        ];
+        $this->logger->registerOutputSignal($sendingNodeName, ['message' => 'register output signal']);
     }
 
     /**
@@ -190,9 +140,14 @@ class Machine
      */
     protected function graphRenderStart(): GraphNode
     {
+        /** @var SignalType[] $joinedNodesMap */
+        $joinedNodesMap = [];
         $used = [];
         $current = $start = new GraphNode('start');
-        foreach ($this->joinedNodesMap as $signalNodeName => $nodes) {
+        foreach ($this->nodeContainer->getAll() as $nodeName => $node) {
+            $joinedNodesMap[$nodeName] = $node['joined'];
+        }
+        foreach ($joinedNodesMap as $signalNodeName => $nodes) {
             if ($signalNodeName === 'start') {
                 continue;
             }
@@ -221,7 +176,11 @@ class Machine
      */
     protected function graphValidate(GraphNode $aa): void
     {
-        foreach ($this->dependencies as $nodeName => $dependencies) {
+        $dependenciesTotal = [];
+        foreach ($this->nodeContainer->getAll() as $nodeName => $node) {
+            $dependenciesTotal[$nodeName] = $node['dependencies'];
+        }
+        foreach ($dependenciesTotal as $nodeName => $dependencies) {
             foreach ($dependencies as $dependency) {
                 if ($aa->find($nodeName)->find($dependency)) {
                     throw new \Exception($nodeName . ' cannot be dependent on the next node "' . $dependency . '"  .');
