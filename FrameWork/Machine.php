@@ -32,6 +32,11 @@ class Machine
         return $this->outputsSignals[$nodeName];
     }
 
+    public function hasInputs(string $nodeName): bool
+    {
+        return isset($this->outputsSignals[$nodeName]);
+    }
+
     public function registerNode(
         string $nodeName,
         NodeInterface $node,
