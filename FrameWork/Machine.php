@@ -96,71 +96,53 @@ class Machine
     protected function emitStart(TreeNode $tree): void
     {
         $relations = $this->prepareRelation();
-        var_dump($relations);
-
-        //$this->walkingForTree(
-        //    $tree,
-        //    function (TreeNode $tree) use ($relations) {
-        //        //echo $tree->parent()->name() . ' ' . $tree->name() . PHP_EOL;
-        //        $sendingNodeName = $tree->parent()->name();
-        //        $nodeName = $tree->name();
-        //        $record = $relations[$sendingNodeName];
-        //            $exceptionSignalType = $record['exception'];
-        //        $signal = $this->getInputs($sendingNodeName);
-        //        $this->logger->init($sendingNodeName, json_encode($signal->signal()->valueOf()));
-        //        if ((!$exceptionSignalType instanceof \Closure && $signal->signal()->equal($exceptionSignalType)) ||
-        //            $exceptionSignalType instanceof \Closure && $exceptionSignalType($signal)) {
-        //            $this->logger->run(
-        //                $sendingNodeName,
-        //                [
-        //                    'run' => $nodeName,
-        //                    'exceptionSignalType' => $exceptionSignalType::class,
-        //                    'exist' => $this->nodeContainer->exist($nodeName),
-        //                ]
-        //            );
-        //            try {
-        //                $this->emit($nodeName, $this->nodeContainer->process($nodeName, $signal));
-        //            } catch (\Exception $exception) {
-        //                $this->logger->error(
-        //                    $sendingNodeName,
-        //                    [
-        //                        'run' => $nodeName,
-        //                        'message' => $exception->getMessage(),
-        //                    ]
-        //                );
-        //            }
-        //        }
-        //    }
-        //);
-        while ($record = array_shift($relations)) {
-            $sendingNodeName = $record['from'];
-            $nodeName = $record['to'];
-            $exceptionSignalType = $record['exception'];
-            $signal = $this->getInputs($sendingNodeName);
-            $this->logger->init($sendingNodeName, json_encode($signal->signal()->valueOf()));
-            if ((!$exceptionSignalType instanceof \Closure && $signal->signal()->equal($exceptionSignalType)) ||
-                $exceptionSignalType instanceof \Closure && $exceptionSignalType($signal)) {
-                $this->logger->run(
-                    $sendingNodeName,
-                    [
-                        'run' => $nodeName,
-                        'exceptionSignalType' => $exceptionSignalType::class,
-                        'exist' => $this->nodeContainer->exist($nodeName),
-                    ]
-                );
-                try {
-                    $this->emit($nodeName, $this->nodeContainer->process($nodeName, $signal));
-                } catch (\Exception $exception) {
-                    $this->logger->error(
+        $this->walkingForTree(
+            $tree,
+            function (TreeNode $tree) use ($relations) {
+                $sendingNodeName = $tree->parent()->name();
+                $nodeName = $tree->name();
+                $record = array_values(
+                    array_filter(
+                        $relations,
+                        function ($record) use ($nodeName) {
+                            return $record['to'] === $nodeName;
+                        }
+                    )
+                )[0];
+                $exceptionSignalType = $record['exception'];
+                foreach ($record['dependencies'] as $dependency) {
+                    if (!$this->hasInputs($dependency)) {
+                        return false;
+                    }
+                }
+                $signal = $this->getInputs($sendingNodeName);
+                $this->logger->init($sendingNodeName, json_encode($signal->signal()->valueOf()));
+                if ((!$exceptionSignalType instanceof \Closure && $signal->signal()->equal($exceptionSignalType)) ||
+                    $exceptionSignalType instanceof \Closure && $exceptionSignalType($signal)) {
+                    $this->logger->run(
                         $sendingNodeName,
                         [
                             'run' => $nodeName,
-                            'message' => $exception->getMessage(),
+                            'exceptionSignalType' => $exceptionSignalType::class,
+                            'exist' => $this->nodeContainer->exist($nodeName),
                         ]
                     );
+                    try {
+                        $this->emit($nodeName, $this->nodeContainer->process($nodeName, $signal));
+                    } catch (\Exception $exception) {
+                        $this->logger->error(
+                            $sendingNodeName,
+                            [
+                                'run' => $nodeName,
+                                'message' => $exception->getMessage(),
+                            ]
+                        );
+                    }
                 }
+
+                return true;
             }
-        }
+        );
     }
 
     /**
@@ -190,6 +172,9 @@ class Machine
                 $isDone &= $status;
             }
             $stack = array_merge($stack, array_reverse($stackTmp));
+        }
+        if (!$isDone) {
+            $this->walkingForTree($tree, $callBack);
         }
     }
 
