@@ -8,17 +8,17 @@
 namespace DecisionMachine\FrameWork;
 
 /**
- * Class GraphNode
+ * Class TreeNode
  *
  * @package DecisionMachine\FrameWork
  */
-class GraphNode
+class TreeNode
 {
-    /** @var GraphNode[] */
+    /** @var self[] */
     protected array $lines = [];
 
-    /** @var GraphNode | null */
-    private ?GraphNode $parent = null;
+    /** @var self | null */
+    private ?self $parent = null;
 
     public function __construct(private readonly string $name)
     {
@@ -33,7 +33,7 @@ class GraphNode
     }
 
     /**
-     * @return \DecisionMachine\FrameWork\GraphNode[]
+     * @return $this[]
      */
     public function lines(): array
     {
@@ -41,19 +41,19 @@ class GraphNode
     }
 
     /**
-     * @return \DecisionMachine\FrameWork\GraphNode
+     * @return $this
      */
-    public function parent(): GraphNode
+    public function parent(): self
     {
         return $this->parent;
     }
 
     /**
-     * @param \DecisionMachine\FrameWork\GraphNode $aa
+     * @param self $aa
      *
      * @return void
      */
-    public function join(GraphNode $aa): void
+    public function join(self $aa): void
     {
         $this->lines[] = $aa;
         $aa->parent = $this;
@@ -62,9 +62,9 @@ class GraphNode
     /**
      * @param string $targetName
      *
-     * @return \DecisionMachine\FrameWork\GraphNode|$this|null
+     * @return $this|null
      */
-    public function find(string $targetName): ?GraphNode
+    public function find(string $targetName): ?self
     {
         foreach ($this->lines as $line) {
             $result = $line->find($targetName);

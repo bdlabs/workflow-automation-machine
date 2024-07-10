@@ -45,9 +45,9 @@ class Machine
      */
     public function run(Signal $inputSignal): Signal
     {
-        $this->graphRender();
+        $tree = $this->treeRender();
         $this->emit('start', $inputSignal);
-        $this->emitStart();
+        $this->emitStart($tree);
 
         return $this->signal;
     }
@@ -78,15 +78,55 @@ class Machine
      */
     protected function prepareRelation(): array
     {
+        $emits = ['start'];
+
         return $this->nodeContainer->makeRelation($this->emits);
     }
 
     /**
+     * @param TreeNode $tree
+     *
      * @return void
      */
-    protected function emitStart(): void
+    protected function emitStart(TreeNode $tree): void
     {
         $relations = $this->prepareRelation();
+        var_dump($relations);
+
+        //$this->walkingForTree(
+        //    $tree,
+        //    function (TreeNode $tree) use ($relations) {
+        //        //echo $tree->parent()->name() . ' ' . $tree->name() . PHP_EOL;
+        //        $sendingNodeName = $tree->parent()->name();
+        //        $nodeName = $tree->name();
+        //        $record = $relations[$sendingNodeName];
+        //            $exceptionSignalType = $record['exception'];
+        //        $signal = $this->getInputs($sendingNodeName);
+        //        $this->logger->init($sendingNodeName, json_encode($signal->signal()->valueOf()));
+        //        if ((!$exceptionSignalType instanceof \Closure && $signal->signal()->equal($exceptionSignalType)) ||
+        //            $exceptionSignalType instanceof \Closure && $exceptionSignalType($signal)) {
+        //            $this->logger->run(
+        //                $sendingNodeName,
+        //                [
+        //                    'run' => $nodeName,
+        //                    'exceptionSignalType' => $exceptionSignalType::class,
+        //                    'exist' => $this->nodeContainer->exist($nodeName),
+        //                ]
+        //            );
+        //            try {
+        //                $this->emit($nodeName, $this->nodeContainer->process($nodeName, $signal));
+        //            } catch (\Exception $exception) {
+        //                $this->logger->error(
+        //                    $sendingNodeName,
+        //                    [
+        //                        'run' => $nodeName,
+        //                        'message' => $exception->getMessage(),
+        //                    ]
+        //                );
+        //            }
+        //        }
+        //    }
+        //);
         while ($record = array_shift($relations)) {
             $sendingNodeName = $record['from'];
             $nodeName = $record['to'];
@@ -118,6 +158,14 @@ class Machine
         }
     }
 
+    public function walkingForTree(TreeNode $tree, $callBack)
+    {
+        foreach ($tree->lines() as $node) {
+            $callBack($node);
+            $this->walkingForTree($node, $callBack);
+        }
+    }
+
     protected function emit(string $sendingNodeName, Signal $signal): void
     {
         $this->emits[] = $sendingNodeName;
@@ -127,23 +175,26 @@ class Machine
     }
 
     /**
+     * @return TreeNode
      * @throws \Exception
      */
-    protected function graphRender(): void
+    protected function treeRender(): TreeNode
     {
-        $graph = $this->graphRenderStart();
-        $this->graphValidate($graph);
+        $tree = $this->treeRenderStart();
+        $this->treeValidate($tree);
+
+        return $tree;
     }
 
     /**
      * @throws \Exception
      */
-    protected function graphRenderStart(): GraphNode
+    protected function treeRenderStart(): TreeNode
     {
         /** @var SignalType[] $joinedNodesMap */
         $joinedNodesMap = [];
-        $used = [];
-        $current = $start = new GraphNode('start');
+        $usedNodes = [];
+        $current = $startNode = new TreeNode('start');
         foreach ($this->nodeContainer->getAll() as $nodeName => $node) {
             $joinedNodesMap[$nodeName] = $node['joined'];
         }
@@ -151,30 +202,30 @@ class Machine
             if ($signalNodeName === 'start') {
                 continue;
             }
-            $finding = $start->find($signalNodeName);
+            $finding = $startNode->find($signalNodeName);
             if (!$finding) {
-                $finding = new GraphNode($signalNodeName);
+                $finding = new TreeNode($signalNodeName);
                 $current->join($finding);
             }
             $current = $finding ?: $current;
             foreach ($nodes as $nodeName => $signal) {
-                if (isset($used[$nodeName])) {
+                if (isset($usedNodes[$nodeName])) {
                     throw new \Exception($nodeName . ' has been used.');
                 }
-                $current->join(new GraphNode($nodeName));
-                $used[$nodeName] = true;
+                $current->join(new TreeNode($nodeName));
+                $usedNodes[$nodeName] = true;
             }
 
-            $current = $start;
+            $current = $startNode;
         }
 
-        return $start;
+        return $startNode;
     }
 
     /**
      * @throws \Exception
      */
-    protected function graphValidate(GraphNode $aa): void
+    protected function treeValidate(TreeNode $treeNode): void
     {
         $dependenciesTotal = [];
         foreach ($this->nodeContainer->getAll() as $nodeName => $node) {
@@ -182,7 +233,7 @@ class Machine
         }
         foreach ($dependenciesTotal as $nodeName => $dependencies) {
             foreach ($dependencies as $dependency) {
-                if ($aa->find($nodeName)->find($dependency)) {
+                if ($treeNode->find($nodeName)->find($dependency)) {
                     throw new \Exception($nodeName . ' cannot be dependent on the next node "' . $dependency . '"  .');
                 }
             }
@@ -211,7 +262,6 @@ class Machine
 
             public function setEmitter($emitter): void
             {
-                $this->emitter = $emitter;
             }
         };
     }
