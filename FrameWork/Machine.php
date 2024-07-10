@@ -163,11 +163,33 @@ class Machine
         }
     }
 
-    public function walkingForTree(TreeNode $tree, $callBack)
+    /**
+     * @param \DecisionMachine\FrameWork\TreeNode $tree
+     * @param $callBack
+     *
+     * @return void
+     */
+    public function walkingForTree(TreeNode $tree, $callBack): void
     {
-        foreach ($tree->lines() as $node) {
-            $callBack($node);
-            $this->walkingForTree($node, $callBack);
+        $isDone = true;
+        /** @var TreeNode[] $stack */
+        $stack = [];
+        $stack[] = $tree;
+        while (!empty($stack)) {
+            $stackTmp = [];
+            $currentNode = array_pop($stack);
+            foreach ($currentNode->lines() as $node) {
+                if ($this->nodeContainer->isExecuted($node->name())) {
+                    $stackTmp[] = $node;
+                    continue;
+                }
+                $status = $callBack($node);
+                if ($status) {
+                    $stackTmp[] = $node;
+                }
+                $isDone &= $status;
+            }
+            $stack = array_merge($stack, array_reverse($stackTmp));
         }
     }
 
