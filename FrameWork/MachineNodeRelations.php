@@ -28,7 +28,8 @@ class MachineNodeRelations
                     'from' => $sendingNodeName,
                     'to' => $nodeName,
                     'exception' => $exceptionSignalType,
-                    'dependencies' => [...$pool[$sendingNodeName]['dependencies'], $sendingNodeName],
+                    'dependencies' => $pool[$nodeName]['dependencies'],
+                    'dependenciesAll' => [...$pool[$nodeName]['dependencies'], $sendingNodeName],
                     'position' => $position,
                 ];
                 $nodeNamePositionList[$nodeName] = $position++;
@@ -36,22 +37,22 @@ class MachineNodeRelations
             }
         }
         foreach ($relations as &$list) {
-            if (count($list['dependencies'])) {
-                foreach ($list['dependencies'] as &$dependencies) {
+            if (count($list['dependenciesAll'])) {
+                foreach ($list['dependenciesAll'] as &$dependencies) {
                     $dependencies = $nodeNamePositionList[$dependencies] + 1;
                 }
-                $list['dependencies'] = max($list['dependencies']);
-                $list['position'] = $list['dependencies'];
-                $nodeNamePositionList[$list['to']] = $list['dependencies'];
+                $list['dependenciesAll'] = max($list['dependenciesAll']);
+                $list['position'] = $list['dependenciesAll'];
+                $nodeNamePositionList[$list['to']] = $list['dependenciesAll'];
             } else {
-                $list['dependencies'] = 0;
+                $list['dependenciesAll'] = 0;
             }
         }
         usort(
             $relations,
             function ($recordA, $recordB) {
-                if ($recordA['dependencies']) {
-                    return $recordA['dependencies'] <=> $recordB['position'];
+                if ($recordA['dependenciesAll']) {
+                    return $recordA['dependenciesAll'] <=> $recordB['position'];
                 }
 
                 return $recordA['position'] <=> $recordB['position'];
