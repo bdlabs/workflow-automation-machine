@@ -29,6 +29,7 @@ class MachineNodesContainer
             'node' => $node,
             'dependencies' => $dependencies,
             'joined' => [],
+            'executed' => false,
         ];
     }
 
@@ -73,7 +74,10 @@ class MachineNodesContainer
      */
     public function process(string $nodeName, Signal $signal): Signal
     {
-        return $this->pool[$nodeName]['node']->process($signal);
+        $result = $this->pool[$nodeName]['node']->process($signal);
+        $this->pool[$nodeName]['executed'] = true;
+
+        return $result;
     }
 
     /**
@@ -82,5 +86,15 @@ class MachineNodesContainer
     public function getAll(): array
     {
         return $this->pool;
+    }
+
+    /**
+     * @param string $nodeName
+     *
+     * @return bool
+     */
+    public function isExecuted(string $nodeName): bool
+    {
+        return $this->pool[$nodeName]['executed'];
     }
 }
