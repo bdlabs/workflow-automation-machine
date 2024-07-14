@@ -46,6 +46,9 @@ class Machine
     }
 
     /**
+     * @param Signal $inputSignal
+     *
+     * @return Signal
      * @throws \Exception
      */
     public function run(Signal $inputSignal): Signal
@@ -83,8 +86,6 @@ class Machine
      */
     protected function prepareRelation(): array
     {
-        $emits = ['start'];
-
         return $this->nodeContainer->makeRelation($this->emits);
     }
 

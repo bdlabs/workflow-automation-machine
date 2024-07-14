@@ -1,5 +1,5 @@
 {
-    "name": "lkoc/decision-machine",
+    "name": "bdlabs/workflow-automation-machine",
     "authors": [
         {
             "name": "Łukasz Koc",
@@ -9,7 +9,7 @@
     "require": {},
     "autoload": {
         "psr-4": {
-            "DecisionMachine\\": "."
+            "Bdlabs\\WorkflowAutomationMachine\\": "."
         }
     }
 }
