@@ -207,29 +207,26 @@ class Machine
         /** @var SignalType[] $joinedNodesMap */
         $joinedNodesMap = [];
         $usedNodes = [];
-        $current = $startNode = new TreeNode('start');
+        /** @var TreeNode[] $nodes */
+        $nodeList = [];
+        $startNode = new TreeNode('start');
+        $nodeList['start'] = $startNode;
         foreach ($this->nodeContainer->getAll() as $nodeName => $node) {
+            if ($nodeName !== 'start') {
+                $nodeList[$nodeName] = new TreeNode($nodeName);
+            }
             $joinedNodesMap[$nodeName] = $node['joined'];
         }
+
         foreach ($joinedNodesMap as $signalNodeName => $nodes) {
-            if ($signalNodeName === 'start') {
-                continue;
-            }
-            $finding = $startNode->find($signalNodeName);
-            if (!$finding) {
-                $finding = new TreeNode($signalNodeName);
-                $current->join($finding);
-            }
-            $current = $finding ?: $current;
+            $nodeRoot = &$nodeList[$signalNodeName];
             foreach ($nodes as $nodeName => $signal) {
                 if (isset($usedNodes[$nodeName])) {
                     throw new \Exception($nodeName . ' has been used.');
                 }
-                $current->join(new TreeNode($nodeName));
+                $nodeRoot->join($nodeList[$nodeName]);
                 $usedNodes[$nodeName] = true;
             }
-
-            $current = $startNode;
         }
 
         return $startNode;
