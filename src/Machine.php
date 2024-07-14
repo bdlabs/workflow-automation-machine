@@ -99,6 +99,7 @@ class Machine
         $relations = $this->prepareRelation();
         $this->walkingForTree(
             $tree,
+            $relations,
             function (TreeNode $tree) use ($relations) {
                 $sendingNodeName = $tree->parent()->name();
                 $nodeName = $tree->name();
@@ -109,36 +110,26 @@ class Machine
                             return $record['to'] === $nodeName;
                         }
                     )
-                )[0];
-                $exceptionSignalType = $record['exception'];
+                )[0] ?? null;
+                if (!$record) {
+                    return true;
+                }
                 foreach ($record['dependencies'] as $dependency) {
                     if (!$this->hasInputs($dependency)) {
                         return false;
                     }
                 }
                 $signal = $this->getInputs($sendingNodeName);
-                $this->logger->init($sendingNodeName, json_encode($signal->signal()->valueOf()));
-                if ((!$exceptionSignalType instanceof \Closure && $signal->signal()->equal($exceptionSignalType)) ||
-                    $exceptionSignalType instanceof \Closure && $exceptionSignalType($signal)) {
-                    $this->logger->run(
+                try {
+                    $this->emit($nodeName, $this->nodeContainer->process($nodeName, $signal));
+                } catch (\Exception $exception) {
+                    $this->logger->error(
                         $sendingNodeName,
                         [
                             'run' => $nodeName,
-                            'exceptionSignalType' => $exceptionSignalType::class,
-                            'exist' => $this->nodeContainer->exist($nodeName),
+                            'message' => $exception->getMessage(),
                         ]
                     );
-                    try {
-                        $this->emit($nodeName, $this->nodeContainer->process($nodeName, $signal));
-                    } catch (\Exception $exception) {
-                        $this->logger->error(
-                            $sendingNodeName,
-                            [
-                                'run' => $nodeName,
-                                'message' => $exception->getMessage(),
-                            ]
-                        );
-                    }
                 }
 
                 return true;
@@ -148,11 +139,12 @@ class Machine
 
     /**
      * @param \DecisionMachine\FrameWork\TreeNode $tree
+     * @param array $relations
      * @param $callBack
      *
      * @return void
      */
-    public function walkingForTree(TreeNode $tree, $callBack): void
+    public function walkingForTree(TreeNode $tree, array $relations, $callBack): void
     {
         $isDone = true;
         /** @var TreeNode[] $stack */
@@ -161,21 +153,38 @@ class Machine
         while (!empty($stack)) {
             $stackTmp = [];
             $currentNode = array_pop($stack);
-            foreach ($currentNode->lines() as $node) {
-                if ($this->nodeContainer->isExecuted($node->name())) {
-                    $stackTmp[] = $node;
-                    continue;
+            $sendingNodeName = $currentNode->name();
+            $signal = $this->getInputs($currentNode->parent()->name());
+            $nodeName = $sendingNodeName;
+            $record = array_values(
+                array_filter(
+                    $relations,
+                    function ($record) use ($nodeName) {
+                        return $record['to'] === $nodeName;
+                    }
+                )
+            )[0] ?? ['exception' => new SignalType()];
+            $exceptionSignalType = $record['exception'];
+            if ((!$exceptionSignalType instanceof \Closure && $signal->signal()->equal($exceptionSignalType)) ||
+                $exceptionSignalType instanceof \Closure && $exceptionSignalType($signal) ||
+                $nodeName === 'start') {
+                foreach ($currentNode->lines() as $node) {
+                    $this->logger->init($node->name(), json_encode($signal->signal()->valueOf()));
+                    if ($this->nodeContainer->isExecuted($node->name())) {
+                        $stackTmp[] = $node;
+                        continue;
+                    }
+                    $status = $callBack($node);
+                    if ($status) {
+                        $stackTmp[] = $node;
+                    }
+                    $isDone &= $status;
                 }
-                $status = $callBack($node);
-                if ($status) {
-                    $stackTmp[] = $node;
-                }
-                $isDone &= $status;
+                $stack = array_merge($stack, array_reverse($stackTmp));
             }
-            $stack = array_merge($stack, array_reverse($stackTmp));
         }
         if (!$isDone) {
-            $this->walkingForTree($tree, $callBack);
+            $this->walkingForTree($tree, $relations, $callBack);
         }
     }
 
