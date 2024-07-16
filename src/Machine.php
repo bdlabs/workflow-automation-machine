@@ -139,14 +139,16 @@ class Machine
                 $signal = $this->getInputs($sendingNodeName);
                 try {
                     $this->emit($nodeName, $this->nodeContainer->process($nodeName, $signal));
-                } catch (\Exception $exception) {
+                } catch (\Throwable $throwable) {
                     $this->logger->error(
                         $sendingNodeName,
                         [
                             'run' => $nodeName,
-                            'message' => $exception->getMessage(),
+                            'message' => $throwable->getMessage(),
                         ]
                     );
+
+                    return -1;
                 }
 
                 return true;
