@@ -22,6 +22,8 @@ class Machine
 
     private array $emits = [];
 
+    private bool $processStatus = false;
+
     public function __construct()
     {
         $this->logger = new Logger();
@@ -67,6 +69,7 @@ class Machine
      */
     public function run(Signal $inputSignal): Signal
     {
+        $this->processStatus = true;
         $tree = $this->treeRender();
         $this->emit('start', $inputSignal);
         $this->emitStart($tree);
@@ -200,6 +203,14 @@ class Machine
         if (!$isDone) {
             $this->walkingForTree($tree, $relations, $callBack);
         }
+    }
+
+    /**
+     * @return bool
+     */
+    public function status(): bool
+    {
+        return $this->processStatus;
     }
 
     protected function emit(string $sendingNodeName, Signal $signal): void
