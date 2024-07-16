@@ -162,6 +162,7 @@ class Machine
      * @param $callBack
      *
      * @return void
+     * @throws \Exception
      */
     public function walkingForTree(TreeNode $tree, array $relations, $callBack): void
     {
@@ -172,35 +173,38 @@ class Machine
         while (!empty($stack)) {
             $stackTmp = [];
             $currentNode = array_pop($stack);
-            $sendingNodeName = $currentNode->name();
-            $signal = $this->getInputs($currentNode->parent()->name());
-            $nodeName = $sendingNodeName;
-            $record = array_values(
-                array_filter(
-                    $relations,
-                    function ($record) use ($nodeName) {
-                        return $record['to'] === $nodeName;
-                    }
-                )
-            )[0] ?? ['exception' => new SignalType()];
-            $exceptionSignalType = $record['exception'];
-            if ((!$exceptionSignalType instanceof \Closure && $signal->signal()->equal($exceptionSignalType)) ||
-                $exceptionSignalType instanceof \Closure && $exceptionSignalType($signal) ||
-                $nodeName === 'start') {
-                foreach ($currentNode->lines() as $node) {
-                    $this->logger->init($node->name(), json_encode($signal->signal()->valueOf()));
-                    if ($this->nodeContainer->isExecuted($node->name())) {
-                        $stackTmp[] = $node;
-                        continue;
-                    }
-                    $status = $callBack($node);
-                    if ($status) {
-                        $stackTmp[] = $node;
-                    }
-                    $isDone &= $status;
+            $sendingNodeNameSignal = $this->getInputs($currentNode->name());
+            foreach ($currentNode->lines() as $node) {
+                $nodeName = $node->name();
+                $record = array_values(
+                    array_filter(
+                        $relations,
+                        function ($record) use ($nodeName) {
+                            return $record['to'] === $nodeName;
+                        }
+                    )
+                )[0] ?? ['exception' => new SignalType()];
+                $exceptionSignalType = $record['exception'];
+                if ((!$exceptionSignalType instanceof \Closure && !$sendingNodeNameSignal->signal()->equal($exceptionSignalType)) ||
+                    $exceptionSignalType instanceof \Closure && !$exceptionSignalType($sendingNodeNameSignal)) {
+                    continue;
                 }
-                $stack = array_merge($stack, array_reverse($stackTmp));
+                if ($this->nodeContainer->isExecuted($node->name())) {
+                    $stackTmp[] = $node;
+                    continue;
+                }
+                $this->logger->init($node->name(), json_encode($sendingNodeNameSignal->signal()->valueOf()));
+                $status = $callBack($node);
+                if ($status === -1) {
+                    $this->processStatus = false;
+                    continue;
+                }
+                if ($status) {
+                    $stackTmp[] = $node;
+                }
+                $isDone &= $status;
             }
+            $stack = array_merge($stack, array_reverse($stackTmp));
         }
         if (!$isDone) {
             $this->walkingForTree($tree, $relations, $callBack);
