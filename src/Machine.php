@@ -2,6 +2,8 @@
 
 namespace DecisionMachine\FrameWork;
 
+use Exception;
+
 /**
  * Class Machine
  *
@@ -27,8 +29,20 @@ class Machine
         $this->registerNode('start', $this->getNode());
     }
 
+    /**
+     * @param string $nodeName
+     *
+     * @return \DecisionMachine\FrameWork\Signal
+     * @throws \Exception
+     */
     public function getInputs(string $nodeName): Signal
     {
+        if (!isset($this->outputsSignals[$nodeName])) {
+            throw new Exception(
+                sprintf('Signal not found for "%s" node', $nodeName)
+            );
+        }
+
         return $this->outputsSignals[$nodeName];
     }
 
