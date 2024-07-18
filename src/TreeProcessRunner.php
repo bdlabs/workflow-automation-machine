@@ -26,7 +26,7 @@ class TreeProcessRunner
     }
 
     /**
-     * @param \DecisionMachine\FrameWork\Signal $inputSignal
+     * @param Signal $inputSignal
      *
      * @return bool
      */
@@ -43,9 +43,6 @@ class TreeProcessRunner
             $stackTmp = [];
             while (!empty($stack)) {
                 $currentNode = array_pop($stack);
-                //echo 'dependencies = ' . implode(', ', $this->poolNodes[$currentNode->name()]['dependencies']) . PHP_EOL;
-                //echo 'joined = ' . implode(', ', array_keys($this->poolNodes[$currentNode->name()]['joined'])) . PHP_EOL;
-                //echo 'joined = ' . implode(', ', $this->poolNodes[$currentNode->name()]['joined']) . PHP_EOL;
                 if ($this->waitForDependencies($currentNode->name())) {
                     $stackTmp[] = $currentNode;
                     continue;
@@ -115,9 +112,9 @@ class TreeProcessRunner
 
     /**
      * @param string $nodeName
-     * @param \DecisionMachine\FrameWork\Signal $inputSignal
+     * @param Signal $inputSignal
      *
-     * @return \DecisionMachine\FrameWork\Signal
+     * @return Signal
      */
     protected function processNode(string $nodeName, Signal $inputSignal): Signal
     {

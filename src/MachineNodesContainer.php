@@ -18,7 +18,7 @@ class MachineNodesContainer
 
     /**
      * @param string $name
-     * @param \DecisionMachine\FrameWork\NodeInterface $node
+     * @param NodeInterface $node
      * @param array $dependencies
      *
      * @return void
