@@ -5,7 +5,7 @@
  * Time: 20:48
  */
 
-namespace DecisionMachine\FrameWork;
+namespace Bdlabs\WorkflowAutomationMachine;
 
 /**
  * Class TreeRender

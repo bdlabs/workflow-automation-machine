@@ -5,7 +5,7 @@
  * Time: 21:11
  */
 
-namespace DecisionMachine\FrameWork;
+namespace Bdlabs\WorkflowAutomationMachine;
 
 /**
  * Class TreeProcessRunner

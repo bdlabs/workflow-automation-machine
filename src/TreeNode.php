@@ -5,7 +5,7 @@
  * Time: 13:28
  */
 
-namespace DecisionMachine\FrameWork;
+namespace Bdlabs\WorkflowAutomationMachine;
 
 /**
  * Class TreeNode

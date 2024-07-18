@@ -5,7 +5,7 @@
  * Time: 12:16
  */
 
-namespace DecisionMachine\FrameWork;
+namespace Bdlabs\WorkflowAutomationMachine;
 
 /**
  * Class MachineNodesContainer

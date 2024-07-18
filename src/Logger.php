@@ -5,7 +5,7 @@
  * Time: 12:06
  */
 
-namespace DecisionMachine\FrameWork;
+namespace Bdlabs\WorkflowAutomationMachine;
 
 /**
  * Class Logger

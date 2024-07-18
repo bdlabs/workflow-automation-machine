@@ -1,6 +1,6 @@
 <?php
 
-namespace DecisionMachine\FrameWork;
+namespace Bdlabs\WorkflowAutomationMachine;
 
 /**
  * Class NodeSignal
