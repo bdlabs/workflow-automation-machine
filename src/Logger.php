@@ -58,7 +58,7 @@ class Logger
     {
         $this->logs[] = [
             'signal' => $signalName,
-            'action' => 'run',
+            'action' => 'error',
             'actionData' => $actionData,
         ];
     }
@@ -73,7 +73,7 @@ class Logger
     {
         $this->logs[] = [
             'signal' => $signalName,
-            'action' => 'run',
+            'action' => 'registerOutputSignal',
             'actionData' => $actionData,
         ];
     }
