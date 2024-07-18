@@ -48,7 +48,12 @@ class TreeProcessRunner
                     continue;
                 }
                 try {
-                    $inputSignal = $outputSignal = $this->processNode($currentNode->name(), $inputSignal);
+                    $currentSignal = $inputSignal->getInputs($currentNode->parent()->name());
+                    $currentSignal = $inputSignal->prepareSignal(
+                        $currentSignal->valueOf(),
+                        new SignalType()
+                    );
+                    $outputSignal = $this->processNode($currentNode->name(), $currentSignal);
                     $emit($currentNode->name(), $outputSignal);
                     $this->execute[$currentNode->name()] = true;
                     $nodeChildren = $this->getNodesForSignalType(
