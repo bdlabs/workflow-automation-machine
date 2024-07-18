@@ -46,17 +46,6 @@ class MachineNodesContainer
     }
 
     /**
-     * @param array $emits
-     *
-     * @return array
-     */
-    public function makeRelation(array &$emits): array
-    {
-        return (new MachineNodeRelations())
-            ->makeRelation($this->pool, $emits);
-    }
-
-    /**
      * @param string $nodeName
      *
      * @return bool
